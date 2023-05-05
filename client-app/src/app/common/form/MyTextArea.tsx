@@ -1,11 +1,12 @@
 import { useField } from 'formik';
-import Reacr from 'react';
+import React from 'react';
 import { Form, Label } from 'semantic-ui-react';
 
 interface Props{
     placeholder: string;
     name: string;
     rows: number;
+    type?: string;
     label?: string;
 }
 export default function MyTextArea(props: Props) {

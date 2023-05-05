@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers
 {
+    [AllowAnonymous]
     [ApiController]
     [Route("api/[controller]")]
     public class AccountController : ControllerBase
@@ -21,9 +22,9 @@ namespace API.Controllers
             _userManager = userManager;
         }
 
-        [AllowAnonymous]
+        
         [HttpPost("login")]
-        public async Task<ActionResult<UserDTO>> Login(LoginDto loginDto)
+        public async Task<ActionResult<UserDto>> Login(LoginDto loginDto)
         {
             var user = await _userManager.FindByEmailAsync(loginDto.Email);
 
@@ -35,21 +36,25 @@ namespace API.Controllers
             {
                 return CreateUserObject(user);
             }
+
             return Unauthorized();
         }
 
-        [AllowAnonymous]
+
         [HttpPost("register")]
-        public async Task<ActionResult<UserDTO>> Register(RegisterDto registerDto)
+        public async Task<ActionResult<UserDto>> Register(RegisterDto registerDto)
         {
-            if(await _userManager.Users.AnyAsync( x => x.UserName == registerDto.Username))
+
+            if(await _userManager.Users.AnyAsync(x => x.Email == registerDto.Email))
             {
-                return BadRequest("Username is aleardy taken");
+                ModelState.AddModelError("email", "Email taken");
+                return ValidationProblem();
             }
 
-           if(await _userManager.Users.AnyAsync( x => x.Email == registerDto.Email))
+            if(await _userManager.Users.AnyAsync(x => x.UserName == registerDto.Username))
             {
-                return BadRequest("Email is aleardy taken");
+                ModelState.AddModelError("username", "Username taken");
+                return ValidationProblem();
             }
 
             var user = new AppUser
@@ -66,22 +71,23 @@ namespace API.Controllers
                 return CreateUserObject(user);
             }
 
-            return BadRequest(result.Errors);
+            return BadRequest("Problem registering user");
         }
 
+        [Authorize]
         [HttpGet]
-        public async Task<ActionResult<UserDTO>> GetCurrentUser()
+        public async Task<ActionResult<UserDto>> GetCurrentUser()
         {
             var user = await _userManager.FindByEmailAsync(User.FindFirstValue(ClaimTypes.Email));
 
             return CreateUserObject(user);
         }
 
-        private UserDTO CreateUserObject(AppUser user)
+        private UserDto CreateUserObject(AppUser user)
         {
-            return new UserDTO
+            return new UserDto
             {
-                DisplayName = user.UserName,
+                DisplayName = user.DisplayName,
                 Image = null,
                 Token = _tokenService.CreateToken(user),
                 Username = user.UserName
