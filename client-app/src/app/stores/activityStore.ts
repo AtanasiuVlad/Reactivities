@@ -7,7 +7,7 @@ import { Profile } from "../models/profile";
 
 export default class ActivityStore {
     activityRegistry = new Map<string, Activity>();
-    selectedActivity: Activity | undefined = undefined;
+    selectedActivity?: Activity = undefined;
     editMode = false;
     loading = false;
     loadingInitial = false;
@@ -17,8 +17,8 @@ export default class ActivityStore {
     }
 
     get activitiesByDate() {
-        return Array.from(this.activityRegistry.values()).sort((a, b) => 
-        a.date!.getTime() - b.date!.getTime());
+        return Array.from(this.activityRegistry.values()).sort((a, b) =>
+            a.date!.getTime() - b.date!.getTime());
     }
 
     get groupedActivities() {
@@ -27,7 +27,7 @@ export default class ActivityStore {
                 const date = format(activity.date!, 'dd MMM yyyy');
                 activities[date] = activities[date] ? [...activities[date], activity] : [activity];
                 return activities;
-            }, {} as {[key: string]: Activity[]})
+            }, {} as { [key: string]: Activity[] })
         )
     }
 
@@ -47,16 +47,16 @@ export default class ActivityStore {
 
     loadActivity = async (id: string) => {
         let activity = this.getActivity(id);
-        if(activity) {
-            this.selectedActivity = activity ;
+        if (activity) {
+            this.selectedActivity = activity;
             return activity;
         }
-        else{
+        else {
             this.setLoadingInitial(true);
-            try{
+            try {
                 activity = await agent.Activities.details(id);
                 this.setActivity(activity);
-                this.selectedActivity = activity;
+                runInAction(() => this.selectedActivity = activity);
                 this.setLoadingInitial(false);
                 return activity;
             } catch (error) {
@@ -71,7 +71,7 @@ export default class ActivityStore {
 
     private setActivity = (activity: Activity) => {
         const user = store.userStore.user;
-        if(user) {
+        if (user) {
             activity.isGoing = activity.attendees!.some(
                 a => a.username === user.username
             )
@@ -86,30 +86,28 @@ export default class ActivityStore {
         this.loadingInitial = state;
     }
 
-    
-    createActivity = async (acivity: ActivityFormValues) => {
-        const user = store.userStore.user;
-        const attendee = new Profile(user!);
-        try {
-            await agent.Activities.create(acivity);
-            const newActivity = new Activity(acivity);
-            newActivity.hostUsername = user!.username;
-            newActivity.attendees = [attendee];
-            this.setActivity(newActivity);
-            runInAction(() => {
-               this.selectedActivity = newActivity;
-            })
-        } catch (error){
-            console.log(error);
-        }
+
+    createActivity = async (activity: ActivityFormValues) => {	
+        const user = store.userStore!.user;	
+        const profile = new Profile(user!);	
+        try {	
+            await agent.Activities.create(activity);	
+            const newActivity = new Activity(activity);	
+            newActivity.hostUsername = user!.username;	
+            newActivity.attendees = [profile];	
+            this.setActivity(newActivity);	
+            runInAction(() => this.selectedActivity = newActivity);	
+        } catch (error) {	
+            console.log(error);	
+        }	
     }
 
     updateActivity = async (activity: ActivityFormValues) => {
-        try{
+        try {
             await agent.Activities.update(activity);
             runInAction(() => {
-                if(activity.id) {
-                    let updatedActivity = {...this.getActivity(activity.id), ...activity}
+                if (activity.id) {
+                    let updatedActivity = { ...this.getActivity(activity.id), ...activity }
                     this.activityRegistry.set(activity.id, updatedActivity as Activity);
                     this.selectedActivity = updatedActivity as Activity;
                 }
@@ -141,14 +139,14 @@ export default class ActivityStore {
         try {
             await agent.Activities.attend(this.selectedActivity!.id);
             runInAction(() => {
-                if(this.selectedActivity?.isGoing) {
-                    this.selectedActivity.attendees=
+                if (this.selectedActivity?.isGoing) {
+                    this.selectedActivity.attendees =
                         this.selectedActivity.attendees?.filter(a => a.username !== user?.username);
                     this.selectedActivity.isGoing = false;
                 } else {
                     const attendee = new Profile(user!);
                     this.selectedActivity?.attendees?.push(attendee);
-                    this.selectedActivity!.isGoing  = true;
+                    this.selectedActivity!.isGoing = true;
                 }
                 this.activityRegistry.set(this.selectedActivity!.id, this.selectedActivity!)
             })
@@ -172,5 +170,9 @@ export default class ActivityStore {
         } finally {
             runInAction(() => this.loading = false);
         }
+    }
+
+    clearSelectedActivity = () => {
+        this.selectedActivity = undefined;
     }
 }

@@ -22,33 +22,30 @@ export default observer(function ActivityForm() {
 
     const [activity, setActivity] = useState<ActivityFormValues>(new ActivityFormValues());
 
-    const validationSchema = Yup.object({
-        title: Yup.string().required('The activity title is required!'),
-        category: Yup.string().required(),
-        date: Yup.string().required('Date is required!'),
-        venue: Yup.string().required(),
-        city: Yup.string().required(),
-        description: Yup.string().required('The activity title is required!')
+    const validationSchema = Yup.object({	
+        title: Yup.string().required('The event title is required'),	
+        category: Yup.string().required('The event category is required'),	
+        description: Yup.string().required(),	
+        date: Yup.string().required('Date is required').nullable(),	
+        venue: Yup.string().required(),	
+        city: Yup.string().required(),	
     })
 
     useEffect(() => {
         if (id) loadActivity(id).then(activity => setActivity(new ActivityFormValues(activity)))
-    }, [id, loadActivity]);
+    }, [id, loadActivity])
 
-     function handleFormSubmit(activity: ActivityFormValues) {
-         if (!activity.id) 
-         {
-            let newActivity = {
-                ...activity,
-                id: uuid()
-            };
-             activity.id = uuid();
-             createActivity(newActivity).then(() => navigate(`/activities/${activity.id}`))
-         } else {
-             updateActivity(activity).then(() => navigate(`/activities/${activity.id}`))
-         }
-
-     }
+    function handleFormSubmit(activity: ActivityFormValues) {	
+        if (!activity.id) {	
+            let newActivity = {	
+                ...activity,	
+                id: uuid()	
+            }	
+            createActivity(newActivity).then(() => navigate(`/activities/${newActivity.id}`))	
+        } else {	
+            updateActivity(activity).then(() => navigate(`/activities/${activity.id}`))	
+        }	
+    }
 
 
     if (loadingInitial) return <LoadingComponent content='Loading activity...' />
